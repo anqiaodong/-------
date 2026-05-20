@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>贪吃蛇</title>
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: #222;
+    }
+    canvas {
+      border: 2px solid #444;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game" width="400" height="400"></canvas>
+  <script>
+    // 常量定义
+    const GRID_SIZE = 20;
+    const GRID_COUNT = 20;
+    const TICK_MS = 150;
+
+    // 画布与上下文
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+
+    // 初始状态变量
+    // 初始蛇：中央横向排列，长度 3，头朝右
+    let snake = [
+      { x: 10, y: 10 },
+      { x: 9,  y: 10 },
+      { x: 8,  y: 10 },
+    ];
+    let direction = { x: 1, y: 0 };     // 当前移动方向
+    let nextDirection = { x: 1, y: 0 }; // 缓存下一次方向
+    let food = { x: 15, y: 10 };
+
+    window.addEventListener('keydown', (e) => {
+      switch (e.key) {
+        case 'ArrowUp':
+          if (direction.y === 0) nextDirection = { x: 0, y: -1 };
+          break;
+        case 'ArrowDown':
+          if (direction.y === 0) nextDirection = { x: 0, y: 1 };
+          break;
+        case 'ArrowLeft':
+          if (direction.x === 0) nextDirection = { x: -1, y: 0 };
+          break;
+        case 'ArrowRight':
+          if (direction.x === 0) nextDirection = { x: 1, y: 0 };
+          break;
+      }
+      // 阻止方向键滚动页面
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        e.preventDefault();
+      }
+    });
+
+    function placeFood() {
+      let newFood;
+      do {
+        newFood = {
+          x: Math.floor(Math.random() * GRID_COUNT),
+          y: Math.floor(Math.random() * GRID_COUNT),
+        };
+      } while (snake.some(seg => seg.x === newFood.x && seg.y === newFood.y));
+      food = newFood;
+    }
+
+    function draw() {
+      // 清空画布
+      ctx.fillStyle = '#111';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // 绘制食物
+      ctx.fillStyle = '#f44';
+      ctx.fillRect(food.x * GRID_SIZE, food.y * GRID_SIZE, GRID_SIZE, GRID_SIZE);
+
+      // 绘制蛇
+      ctx.fillStyle = '#4f4';
+      for (const seg of snake) {
+        ctx.fillRect(seg.x * GRID_SIZE, seg.y * GRID_SIZE, GRID_SIZE, GRID_SIZE);
+      }
+
+      // Game Over 显示
+      if (gameOver) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 40px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2);
+      }
+    }
+
+    function tick() {
+      if (gameOver) return;
+
+      // 应用缓存的方向
+      direction = nextDirection;
+
+      // 计算蛇头新位置
+      const head = {
+        x: snake[0].x + direction.x,
+        y: snake[0].y + direction.y,
+      };
+
+      // 撞墙检测
+      if (head.x < 0 || head.x >= GRID_COUNT || head.y < 0 || head.y >= GRID_COUNT) {
+        gameOver = true;
+        return;
+      }
+
+      // 撞自身检测（排除增长情形：增长时蛇尾不移除，所以不检查最后一节）
+      const willGrow = head.x === food.x && head.y === food.y;
+      const checkLength = willGrow ? snake.length : snake.length - 1;
+      for (let i = 0; i < checkLength; i++) {
+        if (snake[i].x === head.x && snake[i].y === head.y) {
+          gameOver = true;
+          return;
+        }
+      }
+
+      // 移动蛇身
+      snake.unshift(head);
+      if (!willGrow) snake.pop();
+      else placeFood();
+    }
+
+    let gameOver = false;
+    placeFood();
+    setInterval(() => {
+      tick();
+      draw();
+    }, TICK_MS);
+  </script>
+</body>
+</html>
